@@ -1,4 +1,4 @@
-#include "read_data_layer.h"
+#include "../headers/read_data_layer.h"
 /*--------------------------Data Link Layer --------------------------*/
 
 struct termios oldtio, newtio;
@@ -126,6 +126,7 @@ void LLOPEN(int fd)
         exit(-1);
     }
 
+    // Enable link between writer and reader -> read SET and send UA
     if (readControlMessage(fd, SET_C))
     {
         printf("SET received\n");
@@ -237,6 +238,7 @@ unsigned char *LLREAD(int fd, int *sizeMessage)
             }
             break;
         case 5:
+            // DESTUFFING
             // printf("5state\n");
             if (c == escapeFlag)
             {

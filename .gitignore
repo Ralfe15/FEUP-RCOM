@@ -2,6 +2,10 @@
 *.d
 
 # Object files
+cable/cable
+src/read
+src/write
+src/pinguim.gif-r
 *.o
 *.ko
 *.obj

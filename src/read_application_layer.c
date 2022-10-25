@@ -1,6 +1,6 @@
 /*--------------------------Application Link Layer --------------------------*/
 #include "read_data_layer.c"
-#include "read_application_layer.h"
+#include "../headers/read_application_layer.h"
 
 unsigned char *nameOfFileFromStart(unsigned char *start)
 {
@@ -16,7 +16,7 @@ unsigned char *nameOfFileFromStart(unsigned char *start)
     }
     name[L2_] = '-';
     name[L2_ + 1] = 'r';
-    name[L2_+2] = '\0';
+    name[L2_ + 2] = '\0';
     return name;
 }
 
