@@ -148,7 +148,7 @@ int main(int argc, char **argv)
                                         sizeOfFileName, &sizeControlpacketI);
 
   LLWRITE(fd, start, sizeControlpacketI);
-  printf("Sended Start frame\n");
+  printf("SENT Start frame\n");
 
   int sizePacket = sizePacketConst;
   srand(time(NULL));
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
   {
     unsigned char *packet =
         splitMessage(message, &index, &sizePacket, fileSize_bytes);
-    printf("SENDED packet n: %d\n", nFrames);
+    printf("SENT packet n: %d\n", nFrames);
     int headerSize = sizePacket;
     unsigned char *messageHeader =
         headerAL(packet, fileSize_bytes, &headerSize);
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
   unsigned char *end = controlpacketI(C2End, fileSize_bytes, fileName,
                                       sizeOfFileName, &sizeControlpacketI);
   LLWRITE(fd, end, sizeControlpacketI);
-  printf("Frame end sended\n");
+  printf("Frame end SENT\n");
 
   LLCLOSE(fd);
   clock_gettime(0, &requestEnd);
