@@ -1,8 +1,18 @@
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
-//Flags for class 2
+// Flags for class 2
 #define FLAG 0x7E
 #define A 0x03
 #define C_SET 0x03
@@ -15,7 +25,6 @@
 #define bcc1ErrorPercentage 0
 #define bcc2ErrorPercentage 0
 
-#define FLAG 0x7E
 #define SET_BCC (A ^ SET_C)
 #define UA_BCC (A ^ UA_C)
 #define UA_C 0x07
@@ -39,3 +48,10 @@
 #define T2 0x01
 #define L1 0x04
 #define L2 0x0B
+
+#define RR_C0 0x05
+#define RR_C1 0x85
+#define REJ_C0 0x01
+#define REJ_C1 0x81
+#define DISC_C 0x0B
+#define C2End 0x03
