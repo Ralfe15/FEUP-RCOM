@@ -13,12 +13,10 @@ struct termios oldtio, newtio;
 void stateMachineUA(int *state, unsigned char *c) {
 
   switch (*state) {
-  // recebe flag
   case 0:
     if (*c == FLAG)
       *state = 1;
     break;
-  // recebe A
   case 1:
     if (*c == A)
       *state = 2;
@@ -29,7 +27,6 @@ void stateMachineUA(int *state, unsigned char *c) {
         *state = 0;
     }
     break;
-  // recebe C
   case 2:
     if (*c == UA_C)
       *state = 3;
@@ -40,19 +37,17 @@ void stateMachineUA(int *state, unsigned char *c) {
         *state = 0;
     }
     break;
-  // recebe BCC
   case 3:
     if (*c == UA_BCC)
       *state = 4;
     else
       *state = 0;
     break;
-  // recebe FLAG final
   case 4:
     if (*c == FLAG) {
       STOP = TRUE;
       alarm(0);
-      printf("Recebeu UA\n");
+      printf("Received UA\n");
     } else
       *state = 0;
     break;
@@ -68,12 +63,10 @@ unsigned char readControlMessageC(int fd) {
   while (!flagAlarm && state != 5) {
     read(fd, &c, 1);
     switch (state) {
-    // recebe FLAG
     case 0:
       if (c == FLAG)
         state = 1;
       break;
-    // recebe A
     case 1:
       if (c == A)
         state = 2;
@@ -84,7 +77,6 @@ unsigned char readControlMessageC(int fd) {
           state = 0;
       }
       break;
-    // recebe c
     case 2:
       if (c == CRR0 || c == CRR1 || c == CREJ0 || c == CREJ1 || c == DISC) {
         C = c;
@@ -96,14 +88,12 @@ unsigned char readControlMessageC(int fd) {
           state = 0;
       }
       break;
-    // recebe BCC
     case 3:
       if (c == (A ^ C))
         state = 4;
       else
         state = 0;
       break;
-    // recebe FLAG final
     case 4:
       if (c == FLAG) {
         alarm(0);
@@ -129,11 +119,11 @@ void sendControlMessage(int fd, unsigned char C) {
 }
 
 
-unsigned char calculoBCC2(unsigned char *mensagem, int size) {
-  unsigned char BCC2 = mensagem[0];
+unsigned char calculoBCC2(unsigned char *message, int size) {
+  unsigned char BCC2 = message[0];
   int i;
   for (i = 1; i < size; i++) {
-    BCC2 ^= mensagem[i];
+    BCC2 ^= message[i];
   }
   return BCC2;
 }
@@ -160,30 +150,30 @@ unsigned char *stuffingBCC2(unsigned char BCC2, int *sizeBCC2) {
 
 
 unsigned char *messUpBCC1(unsigned char *packet, int sizePacket) {
-  unsigned char *copia = (unsigned char *)malloc(sizePacket);
-  memcpy(copia, packet, sizePacket);
+  unsigned char *copy = (unsigned char *)malloc(sizePacket);
+  memcpy(copy, packet, sizePacket);
   int r = (rand() % 100) + 1;
   if (r <= bcc1ErrorPercentage) {
     int i = (rand() % 3) + 1;
     unsigned char randomLetter = (unsigned char)('A' + (rand() % 26));
-    copia[i] = randomLetter;
-    printf("Modifiquei BCC1\n");
+    copy[i] = randomLetter;
+    printf(" BCC1 has been changed\n");
   }
-  return copia;
+  return copy;
 }
 
 
 unsigned char *messUpBCC2(unsigned char *packet, int sizePacket) {
-  unsigned char *copia = (unsigned char *)malloc(sizePacket);
-  memcpy(copia, packet, sizePacket);
+  unsigned char *copy = (unsigned char *)malloc(sizePacket);
+  memcpy(copy, packet, sizePacket);
   int r = (rand() % 100) + 1;
   if (r <= bcc2ErrorPercentage) {
     int i = (rand() % (sizePacket - 5)) + 4;
     unsigned char randomLetter = (unsigned char)('A' + (rand() % 26));
-    copia[i] = randomLetter;
-    printf("Modifiquei BCC2\n");
+    copy[i] = randomLetter;
+    printf(" BCC2 has been changed\n");
   }
-  return copia;
+  return copy;
 }
 
 
@@ -232,7 +222,7 @@ int LLOPEN(int fd, int x) {
     }
   } while (flagAlarm && sumAlarms < NUMMAX);
   printf("flag alarm %d\n", flagAlarm);
-  printf("soma %d\n", sumAlarms);
+  printf("Total Alarms: %d\n", sumAlarms);
   if (flagAlarm && sumAlarms == 3) {
     return FALSE;
   } else {
@@ -243,85 +233,84 @@ int LLOPEN(int fd, int x) {
 }
 
 
-int LLWRITE(int fd, unsigned char *mensagem, int size) {
+int LLWRITE(int fd, unsigned char *message, int size) {
   unsigned char BCC2;
   unsigned char *BCC2Stuffed = (unsigned char *)malloc(sizeof(unsigned char));
-  unsigned char *mensagemFinal =
+  unsigned char *finalMessage =
       (unsigned char *)malloc((size + 6) * sizeof(unsigned char));
-  int sizeMensagemFinal = size + 6;
+  int sizefinalMessage = size + 6;
   int sizeBCC2 = 1;
-  BCC2 = calculoBCC2(mensagem, size);
+  BCC2 = calculoBCC2(message, size);
   BCC2Stuffed = stuffingBCC2(BCC2, &sizeBCC2);
-  int rejeitado = FALSE;
+  int rejected = FALSE;
 
-  mensagemFinal[0] = FLAG;
-  mensagemFinal[1] = A;
+  finalMessage[0] = FLAG;
+  finalMessage[1] = A;
   if (frame == 0) {
-    mensagemFinal[2] = C10;
+    finalMessage[2] = C10;
   } else {
-    mensagemFinal[2] = C11;
+    finalMessage[2] = C11;
   }
-  mensagemFinal[3] = (mensagemFinal[1] ^ mensagemFinal[2]);
+  finalMessage[3] = (finalMessage[1] ^ finalMessage[2]);
 
   int i = 0;
   int j = 4;
   for (; i < size; i++) {
-    if (mensagem[i] == FLAG) {
-      mensagemFinal =
-          (unsigned char *)realloc(mensagemFinal, ++sizeMensagemFinal);
-      mensagemFinal[j] = Escape;
-      mensagemFinal[j + 1] = escapeFlag;
+    if (message[i] == FLAG) {
+      finalMessage =
+          (unsigned char *)realloc(finalMessage, ++sizefinalMessage);
+      finalMessage[j] = Escape;
+      finalMessage[j + 1] = escapeFlag;
       j = j + 2;
     } else {
-      if (mensagem[i] == Escape) {
-        mensagemFinal =
-            (unsigned char *)realloc(mensagemFinal, ++sizeMensagemFinal);
-        mensagemFinal[j] = Escape;
-        mensagemFinal[j + 1] = escapeEscape;
+      if (message[i] == Escape) {
+        finalMessage =
+            (unsigned char *)realloc(finalMessage, ++sizefinalMessage);
+        finalMessage[j] = Escape;
+        finalMessage[j + 1] = escapeEscape;
         j = j + 2;
       } else {
-        mensagemFinal[j] = mensagem[i];
+        finalMessage[j] = message[i];
         j++;
       }
     }
   }
 
   if (sizeBCC2 == 1)
-    mensagemFinal[j] = BCC2;
+    finalMessage[j] = BCC2;
   else {
-    mensagemFinal =
-        (unsigned char *)realloc(mensagemFinal, ++sizeMensagemFinal);
-    mensagemFinal[j] = BCC2Stuffed[0];
-    mensagemFinal[j + 1] = BCC2Stuffed[1];
+    finalMessage =
+        (unsigned char *)realloc(finalMessage, ++sizefinalMessage);
+    finalMessage[j] = BCC2Stuffed[0];
+    finalMessage[j + 1] = BCC2Stuffed[1];
     j++;
   }
-  mensagemFinal[j + 1] = FLAG;
+  finalMessage[j + 1] = FLAG;
 
-  // mandar mensagem
   do {
 
-    unsigned char *copia;
-    copia = messUpBCC1(mensagemFinal, sizeMensagemFinal); // altera bcc1
-    copia = messUpBCC2(copia, sizeMensagemFinal);         // altera bcc2
-    write(fd, copia, sizeMensagemFinal);
+    unsigned char *copy;
+    copy = messUpBCC1(finalMessage, sizefinalMessage); // bcc1
+    copy = messUpBCC2(copy, sizefinalMessage);         // bcc2
+    write(fd, copy, sizefinalMessage);
 
     flagAlarm = FALSE;
     alarm(TIMEOUT);
     unsigned char C = readControlMessageC(fd);
     if ((C == CRR1 && frame == 0) || (C == CRR0 && frame == 1)) {
-      printf("Recebeu rr %x, frame = %d\n", C, frame);
-      rejeitado = FALSE;
+      printf("Received RR: %x frame: %d\n", C, frame);
+      rejected = FALSE;
       sumAlarms = 0;
       frame ^= 1;
       alarm(0);
     } else {
       if (C == CREJ1 || C == CREJ0) {
-        rejeitado = TRUE;
-        printf("Recebeu rej %x, frame=%d\n", C, frame);
+        rejected = TRUE;
+        printf("Received REJ: %x frame:%d\n", C, frame);
         alarm(0);
       }
     }
-  } while ((flagAlarm && sumAlarms < NUMMAX) || rejeitado);
+  } while ((flagAlarm && sumAlarms < NUMMAX) || rejected);
   if (sumAlarms >= NUMMAX)
     return FALSE;
   else
@@ -331,16 +320,16 @@ int LLWRITE(int fd, unsigned char *mensagem, int size) {
 
 void LLCLOSE(int fd) {
   sendControlMessage(fd, DISC);
-  printf("Mandou DISC\n");
+  printf("DISC Sended\n");
   unsigned char C;
   // espera ler o DISC
   C = readControlMessageC(fd);
   while (C != DISC) {
     C = readControlMessageC(fd);
   }
-  printf("Leu DISC\n");
+  printf(" DISC readed \n");
   sendControlMessage(fd, UA_C);
-  printf("Mandou UA final\n");
+  printf(" Last UA sended\n");
   printf("Writer terminated \n");
 
   if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {

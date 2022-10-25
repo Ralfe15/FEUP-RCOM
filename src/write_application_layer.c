@@ -1,43 +1,42 @@
 #include "write_application_layer.h"
 #include "write_data_layer.c"
 
-extern int sumAlarms ;
+extern int sumAlarms;
 extern int flagAlarm;
- unsigned char nMsgs = 0;
- int nFrames = 0;
-extern  struct termios oldtio, newtio;
+unsigned char nMsgs = 0;
+int nFrames = 0;
+extern struct termios oldtio, newtio;
 
-// handler do sinal de alarme
 void alarmHandler() {
   printf("Alarm=%d\n", sumAlarms + 1);
   flagAlarm = TRUE;
   sumAlarms++;
 }
-unsigned char *controlPackageI(unsigned char state, off_t fileSize_bytes,
+unsigned char *controlpacketI(unsigned char state, off_t fileSize_bytes,
                                unsigned char *fileName, int sizeOfFileName,
-                               int *sizeControlPackageI) {
-  *sizeControlPackageI = 9 * sizeof(unsigned char) + sizeOfFileName;
-  unsigned char *package = (unsigned char *)malloc(*sizeControlPackageI);
+                               int *sizeControlpacketI) {
+  *sizeControlpacketI = 9 * sizeof(unsigned char) + sizeOfFileName;
+  unsigned char *packet = (unsigned char *)malloc(*sizeControlpacketI);
 
   if (state == C2Start)
-    package[0] = C2Start;
+    packet[0] = C2Start;
   else
-    package[0] = C2End;
-  package[1] = T1;
-  package[2] = L1;
-  package[3] = (fileSize_bytes >> 24) & 0xFF;
-  package[4] = (fileSize_bytes >> 16) & 0xFF;
-  package[5] = (fileSize_bytes >> 8) & 0xFF;
-  package[6] = fileSize_bytes & 0xFF;
-  package[7] = T2;
-  package[8] = sizeOfFileName;
+    packet[0] = C2End;
+  packet[1] = T1;
+  packet[2] = L1;
+  packet[3] = (fileSize_bytes >> 24) & 0xFF;
+  packet[4] = (fileSize_bytes >> 16) & 0xFF;
+  packet[5] = (fileSize_bytes >> 8) & 0xFF;
+  packet[6] = fileSize_bytes & 0xFF;
+  packet[7] = T2;
+  packet[8] = sizeOfFileName;
   int k = 0;
-  for (; k < sizeOfFileName; k++) {
-    package[9 + k] = fileName[k];
+  while (k < sizeOfFileName) {
+    packet[9 + k] = fileName[k];
+    k++;
   }
-  return package;
+  return packet;
 }
-
 
 unsigned char *openReadFile(unsigned char *fileName, off_t *fileSize_bytes) {
   FILE *f;
@@ -58,23 +57,21 @@ unsigned char *openReadFile(unsigned char *fileName, off_t *fileSize_bytes) {
   return fileData;
 }
 
-
-unsigned char *headerAL(unsigned char *mensagem, off_t fileSize_bytes,
+unsigned char *headerAL(unsigned char *message, off_t fileSize_bytes,
                         int *sizePacket) {
-  unsigned char *mensagemFinal = (unsigned char *)malloc(fileSize_bytes + 4);
-  mensagemFinal[0] = headerC;
-  mensagemFinal[1] = nMsgs % 255;
-  mensagemFinal[2] = (int)fileSize_bytes / 256;
-  mensagemFinal[3] = (int)fileSize_bytes % 256;
-  memcpy(mensagemFinal + 4, mensagem, *sizePacket);
+  unsigned char *messageFinal = (unsigned char *)malloc(fileSize_bytes + 4);
+  messageFinal[0] = headerC;
+  messageFinal[1] = nMsgs % 255;
+  messageFinal[2] = (int)fileSize_bytes / 256;
+  messageFinal[3] = (int)fileSize_bytes % 256;
+  memcpy(messageFinal + 4, message, *sizePacket);
   *sizePacket += 4;
   nMsgs++;
   nFrames++;
-  return mensagemFinal;
+  return messageFinal;
 }
 
-
-unsigned char *splitMessage(unsigned char *mensagem, off_t *index,
+unsigned char *splitMessage(unsigned char *message, off_t *index,
                             int *sizePacket, off_t fileSize_bytes) {
   unsigned char *packet;
   int i = 0;
@@ -83,21 +80,20 @@ unsigned char *splitMessage(unsigned char *mensagem, off_t *index,
     *sizePacket = fileSize_bytes - *index;
   }
   packet = (unsigned char *)malloc(*sizePacket);
-  for (; i < *sizePacket; i++, j++) {
-    packet[i] = mensagem[j];
+  while ( i < *sizePacket) {
+    packet[i] = message[j];
+    i++;j++;
   }
   *index = j;
   return packet;
 }
 
-
 int main(int argc, char **argv) {
-  // int c, res;
-  // char buf[255];
+
   int fd;
   off_t fileSize_bytes; // file size
   off_t index = 0;
-  int sizeControlPackageI = 0;
+  int sizeControlpacketI = 0;
 
   if ((argc < 3) || ((strcmp("/dev/ttyS10", argv[1]) != 0) &&
                      (strcmp("/dev/ttyS11", argv[1]) != 0))) {
@@ -114,23 +110,18 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (tcgetattr(fd, &oldtio) ==
-      -1) { /* save current port settings */
+  if (tcgetattr(fd, &oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
     exit(-1);
   }
-  // instalar handler do alarme
   (void)signal(SIGALRM, alarmHandler);
-  
-  unsigned char *mensagem =
+
+  unsigned char *message =
       openReadFile((unsigned char *)argv[2], &fileSize_bytes);
 
-  // inicio do relógio
   struct timespec requestStart, requestEnd;
   clock_gettime(0, &requestStart);
 
-  // se nao conseguirmos efetuar a ligaçao atraves do set e do ua o programa
-  // termina
   if (!LLOPEN(fd, 0)) {
     return -1;
   }
@@ -138,39 +129,34 @@ int main(int argc, char **argv) {
   int sizeOfFileName = strlen(argv[2]);
   unsigned char *fileName = (unsigned char *)malloc(sizeOfFileName);
   fileName = (unsigned char *)argv[2];
-  unsigned char *start = controlPackageI(C2Start, fileSize_bytes, fileName,
-                                         sizeOfFileName, &sizeControlPackageI);
+  unsigned char *start = controlpacketI(C2Start, fileSize_bytes, fileName,
+                                         sizeOfFileName, &sizeControlpacketI);
 
-  LLWRITE(fd, start, sizeControlPackageI);
-  printf("Mandou frame START\n");
+  LLWRITE(fd, start, sizeControlpacketI);
+  printf("Sended Start frame\n");
 
   int sizePacket = sizePacketConst;
   srand(time(NULL));
-
-  while (sizePacket == sizePacketConst && index < fileSize_bytes) {
-    // split mensagem
+  for(;sizePacket == sizePacketConst && index < fileSize_bytes;)
+ {
     unsigned char *packet =
-        splitMessage(mensagem, &index, &sizePacket, fileSize_bytes);
-    printf("Mandou packet numero %d\n", nFrames);
-    // header nivel aplicação
+        splitMessage(message, &index, &sizePacket, fileSize_bytes);
+    printf("SENDED packet n: %d\n", nFrames);
     int headerSize = sizePacket;
-    unsigned char *mensagemHeader =
+    unsigned char *messageHeader =
         headerAL(packet, fileSize_bytes, &headerSize);
-    // envia a mensagem
-    if (!LLWRITE(fd, mensagemHeader, headerSize)) {
-      printf("Limite de alarmes atingido\n");
+    if (!LLWRITE(fd, messageHeader, headerSize)) {
+      printf("WARNING: Limit os alarms has been trigged.\n");
       return -1;
     }
   }
 
-  unsigned char *end = controlPackageI(C2End, fileSize_bytes, fileName,
-                                       sizeOfFileName, &sizeControlPackageI);
-  LLWRITE(fd, end, sizeControlPackageI);
-  printf("Mandou frame END\n");
+  unsigned char *end = controlpacketI(C2End, fileSize_bytes, fileName,
+                                       sizeOfFileName, &sizeControlpacketI);
+  LLWRITE(fd, end, sizeControlpacketI);
+  printf("Frame end sended\n");
 
   LLCLOSE(fd);
-
-  // fim do relógio
   clock_gettime(0, &requestEnd);
 
   double accum = (requestEnd.tv_sec - requestStart.tv_sec) +

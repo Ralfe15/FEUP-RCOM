@@ -1,63 +1,55 @@
 #include "definitions.h"
 
-/*--------------------------Data Link Layer --------------------------*/
+/*//////////////////
+Data Link Layer 
+//////////////////*/
 
 /*
- * Verifica se o UA foi recebido (com alarme).
- * Data link layer
+ * Verify UA state with alarm
  */
 void stateMachineUA(int *state, unsigned char *c);
 
 /*
- * Espera por uma trama de supervisão e retorna o seu C.
- * Data link layer
+ * Wait for a frame and returns its C.
  */
 unsigned char readControlMessageC(int fd);
 
 /*
- * Envia uma trama de supervisão, sendo o C recebido como argumento
- * da função a diferença de cada trama enviada.
- * Data link layer
+* Sends a supervisionFrame.
+*  C => difference between each sended frame
  */
 void sendControlMessage(int fd, unsigned char C);
 
 /*
- * Calcula o valor do BCC2 de uma mensagem.
- * Data link Layer
+ * BCC2 Calculation
  */
 unsigned char calculoBCC2(unsigned char *mensagem, int size);
 
 /*
- * realiza o stuffing do BCC2.
- * Data link layer
+ * BCC2 Stuffing
  */
 unsigned char *stuffingBCC2(unsigned char BCC2, int *sizeBCC2);
 
 /*
- * Geração aleatória de erros no BCC1.
- * Data link layer
+ * BCC1 erros random generator.
  */
 unsigned char *messUpBCC1(unsigned char *packet, int sizePacket);
 
 /*
- * Geração aleatória de erros no BCC2.
- * Data link layer
+ * BCC2 erros random generator.
  */
 unsigned char *messUpBCC2(unsigned char *packet, int sizePacket);
 
 /*
- *Envia trama de supervisão SET e recebe trama UA.
- *Data link Layer
+* Sends Supervision frame and receives frame UA
  */
 int LLOPEN(int fd, int x);
 
 /*
- * Realiza stuffing das tramas I e envia-as.
- * Data link layer
+ * Stuffing realization and delivery.
  */
 int LLWRITE(int fd, unsigned char *mensagem, int size);
 /*
- * Envia trama de supervisão DISC, recebe DISC e envia UA.
- * Data link layer
+ *Send supervision frame and receives DISC and sends UA
  */
 void LLCLOSE(int fd);
