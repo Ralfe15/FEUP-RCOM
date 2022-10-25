@@ -6,7 +6,7 @@ unsigned char *nameOfFileFromStart(unsigned char *start)
 {
 
     int L2_ = (int)start[8];
-    unsigned char *name = (unsigned char *)malloc(L2_ + 1);
+    unsigned char *name = (unsigned char *)malloc(L2_ + 3);
 
     int i = 0;
     while (i < L2_)
@@ -14,8 +14,9 @@ unsigned char *nameOfFileFromStart(unsigned char *start)
         name[i] = start[9 + i];
         i++;
     }
-
-    name[L2_] = '\0';
+    name[L2_] = '-';
+    name[L2_ + 1] = 'r';
+    name[L2_+2] = '\0';
     return name;
 }
 
