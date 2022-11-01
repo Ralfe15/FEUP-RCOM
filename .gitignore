@@ -6,6 +6,7 @@ cable/cable
 src/read
 src/write
 src/pinguim.gif-r
+bin/*
 *.o
 *.ko
 *.obj
