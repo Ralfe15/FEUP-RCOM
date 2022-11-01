@@ -7,6 +7,7 @@ src/read
 src/write
 src/pinguim.gif-r
 bin/*
+bin/.gitkeep 
 *.o
 *.ko
 *.obj
