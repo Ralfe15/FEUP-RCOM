@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
         perror("socket()");
         exit(-1);
     }
+    printf("open");
     /*connect to the server*/
     if (connect(sockfd,
                 (struct sockaddr *) &server_addr,
@@ -41,6 +42,7 @@ int main(int argc, char **argv) {
         perror("connect()");
         exit(-1);
     }
+    printf("connect");
     /*send a string to the server*/
     bytes = write(sockfd, buf, strlen(buf));
     if (bytes > 0)
