@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 	struct URL url;
     char ip[MAX_SIZE];
     char reader[MAX_SIZE];
-    int sockfd,datasocketfd,port;
+    int datasocketfd,port;
       if (argc != 3 || parseURL(argv,&url)) {
 		fprintf(stderr, "Wrong number of arguments!");
 		return 1;
@@ -128,82 +128,42 @@ int main(int argc, char **argv) {
     int response = 0;
 
     // Sending username
-    char *username = malloc(10 + strlen(url.user));
-    username[0] = '\0';
-
-    strcat(username, "user ");
-    strcat(username, url.user);
-
-    writeToSocket(socketfd, username, strlen(username));
-
-    response = readSocket(socketfd, NULL);
-
-    if (response != 331) {
-        printf("Login failed. Wrong username\n");
-        exit(-1);
+    if(readCMDSocket(socketfd,"user", url.user,response)!= 331){
+        perror("ERROR sending user");
+        exit(1);
     }
-
-    // Sending password
-
-    char *password = malloc(10 + strlen(url.password));
-    password[0] = '\0';
-
-    strcat(password, "pass ");
-    strcat(password, url.password);
-    
-    writeToSocket(socketfd, password, strlen(password));
-
-    response = readSocket(socketfd, NULL);
-
-    if (response != 230) {
-        printf("Login failed. Wrong password\n");
-        exit(-1);
-    } else {
-        printf("\nLogin successful.\n\n");
+      if(readCMDSocket(socketfd,"pass", url.password,response)!= 230){
+        perror("ERROR sending pass");
+        exit(1);
+    }  if(readCMDSocket(socketfd,"pasv", url.password,response)!= 227){
+        perror("ERROR sending pasv");
+        exit(1);
+    } 
+    readPasv(response,&port);
+     if((datasocketfd = connectTCPsocket(ip,port)) == -1)
+    {
+		fprintf(stderr, "Unable to connect to socket");
+		exit(1);
+	}
+    if(readCMDSocket(socketfd,"retr",url.path,response != 150)){
+        perror("ERROR retr");
+        exit(1);
     }
+    if(download(datasocketfd,url.filename)==1){     
+           perror("ERROR download");
+        exit(1);}
+        else printf("download sucess");
 
-    // Entering passive mode
-
-    writeToSocket(socketfd, "pasv", 4);
-
-    int datasocket = 0;
-
-    readSocket(socketfd, &datasocket);
-
-    char *retr = malloc(10 + strlen(url.path));
-    retr[0] = '\0';
-
-    strcat(retr, "retr ");
-    strcat(retr, url.path);
-
-    writeToSocket(socketfd, retr, strlen(retr));
-
+ if(close(socketfd) < 0){     
+           perror("ERROR close");
+        exit(1);} 
+        if(close(datasocketfd) < 0){     
+           perror("ERROR close");
+        exit(1);} 
+       
     //Check what the size of the file is
-
-    int fileSize = 0;
-
-    int fileCode = readSocket(socketfd, &fileSize);
-
-    if (fileCode == 550) {
-        printf("\nWARNING: File not found\n");
-        //We could ask for another file here
-        if (disconnectFromSocket(socketfd) == -1) exit(-1);
-        return 0;
-    }
-
-    int *fileToWrite = -1;
     
-
-    fileToWrite = fopen(url.filename, "w+");
-
-    readDataSocketToFile(datasocket, fileToWrite, fileSize);
-
-    fclose(fileToWrite);
-
-    printf("File received.\n\n");
-
-
-    if (disconnectFromSocket(socketfd) == -1) exit(-1);
+  
 
     return 0;
 }
