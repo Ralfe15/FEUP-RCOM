@@ -24,7 +24,6 @@ typedef struct URL {
 
 enum parseState {read_FTP, read_USR, read_PASS, read_HOST, read_PATH};
 // ftp://[<user>:<password>@]<host>/<url-path>
-void resetURL(url* url);
 int parseURL(char **args, url* url){
     char *arg =args[2];
 
@@ -41,11 +40,11 @@ int parseURL(char **args, url* url){
         return EXIT_FAILURE;
     }
     strcpy(url->protocol,parser);
-    char *c_host = strlok(NULL, "/");
+    char *c_host = strtok(NULL, "/");
 
     char *dir;
     memset(url->path,0,strlen(url->path));
-    while((dir = strlok(NULL,"/")) != NULL){
+    while((dir = strtok(NULL,"/")) != NULL){
         strcat(url->path,"/");
         strcat(url->path,dir);
         strcpy(url->filename,dir);
