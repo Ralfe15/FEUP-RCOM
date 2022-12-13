@@ -30,8 +30,8 @@ int main(int argc, char *argv[]) {
 
     #define h_addr h_addr_list[0]	The first address in h_addr_list.
 */
-    if ((h = gethostbyname(argv[1])) == NULL) {
-        herror("gethostbyname()");
+    if ((h = gethost_name_toString(argv[1])) == NULL) {
+        herror("gethost_name_toString() not working");
         exit(-1);
     }
 

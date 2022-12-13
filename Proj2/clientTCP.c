@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-#define SERVER_PORT 6000
+#define SERVER_PORT 6000 //need to change
 #define SERVER_ADDR "192.168.28.96"
 
 int main(int argc, char **argv) {
